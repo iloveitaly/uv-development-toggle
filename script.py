@@ -19,6 +19,7 @@ import json
 import logging
 import shutil
 import subprocess
+import os
 from pathlib import Path
 from urllib.request import urlopen
 
@@ -105,7 +106,9 @@ def toggle_module_source(
 
     sources = config["tool"]["uv"]["sources"]
     current_source = sources.get(module_name, {})
-    local_path = Path(f"pypi/{module_name}")
+    
+    dev_toggle_dir = os.environ.get("PYTHON_DEVELOPMENT_TOGGLE", "pypi")
+    local_path = Path(f"{dev_toggle_dir}/{module_name}")
 
     # Get current branch if local repo exists
     current_branch = None
