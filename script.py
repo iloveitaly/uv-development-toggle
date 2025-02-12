@@ -9,8 +9,6 @@
 import argparse
 from pathlib import Path
 
-from pdbr import pdbr_context
-
 import tomlkit
 
 
@@ -26,13 +24,14 @@ from urllib.request import urlopen
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+
 def get_github_username() -> str:
     logger.debug("Attempting to get GitHub username")
     # Try gh cli first
     try:
-        result = subprocess.run(['gh', 'api', 'user'], capture_output=True, text=True)
+        result = subprocess.run(["gh", "api", "user"], capture_output=True, text=True)
         if result.returncode == 0:
-            username = json.loads(result.stdout)['login']
+            username = json.loads(result.stdout)["login"]
             logger.debug(f"Found username via gh cli: {username}")
             return username
     except FileNotFoundError:
@@ -40,7 +39,9 @@ def get_github_username() -> str:
 
     # Fall back to git config
     try:
-        result = subprocess.run(['git', 'config', 'user.name'], capture_output=True, text=True)
+        result = subprocess.run(
+            ["git", "config", "user.name"], capture_output=True, text=True
+        )
         if result.returncode == 0:
             username = result.stdout.strip()
             logger.debug(f"Found username via git config: {username}")
@@ -49,6 +50,7 @@ def get_github_username() -> str:
         logger.debug("git not found")
 
     return None
+
 
 def check_github_repo_exists(username: str, repo: str) -> bool:
     logger.debug(f"Checking if repo exists: {username}/{repo}")
@@ -59,6 +61,7 @@ def check_github_repo_exists(username: str, repo: str) -> bool:
     except:
         logger.debug("Repository not found")
         return False
+
 
 def get_pypi_info(package_name: str) -> dict:
     logger.debug(f"Fetching PyPI data for {package_name}")
@@ -71,31 +74,34 @@ def get_pypi_info(package_name: str) -> dict:
         logger.debug("Failed to fetch PyPI data")
         return {}
 
+
 def get_pypi_homepage(package_name: str) -> str:
     data = get_pypi_info(package_name)
-    homepage = data.get('info', {}).get('home_page', '')
+    homepage = data.get("info", {}).get("home_page", "")
 
     if not homepage:
-        project_urls = data.get('info', {}).get('project_urls', {})
-        homepage = project_urls.get('repository', '')
+        project_urls = data.get("info", {}).get("project_urls", {})
+        homepage = project_urls.get("repository", "")
 
     logger.debug(f"Found homepage: {homepage}")
     return homepage
 
+
 def clone_repo(github_url: str, target_path: Path):
     logger.info(f"Cloning {github_url} into {target_path}")
-    subprocess.run(['git', 'clone', github_url, str(target_path)], check=True)
+    subprocess.run(["git", "clone", github_url, str(target_path)], check=True)
+
 
 def get_current_branch(repo_path: Path) -> str:
     result = subprocess.run(
-        ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
         capture_output=True,
         text=True,
-        cwd=str(repo_path)
+        cwd=str(repo_path),
     )
     return result.stdout.strip()
 
-@pdbr_context()
+
 def toggle_module_source(
     module_name: str, force_local: bool = False, force_published: bool = False
 ):
@@ -106,7 +112,7 @@ def toggle_module_source(
 
     sources = config["tool"]["uv"]["sources"]
     current_source = sources.get(module_name, {})
-    
+
     dev_toggle_dir = os.environ.get("PYTHON_DEVELOPMENT_TOGGLE", "pypi")
     local_path = Path(f"{dev_toggle_dir}/{module_name}")
 
@@ -114,7 +120,7 @@ def toggle_module_source(
     current_branch = None
     if local_path.exists():
         current_branch = get_current_branch(local_path)
-        if current_branch in ('master', 'main'):
+        if current_branch in ("master", "main"):
             current_branch = None
 
     # Try to find the correct GitHub source
@@ -125,7 +131,7 @@ def toggle_module_source(
         github_url = f"https://github.com/{username}/{module_name}.git"
     else:
         pypi_homepage = get_pypi_homepage(module_name)
-        if 'github.com' in pypi_homepage:
+        if "github.com" in pypi_homepage:
             github_url = f"{pypi_homepage}.git"
 
     if not github_url:
@@ -156,12 +162,18 @@ def toggle_module_source(
 
     logger.info(f"Set {module_name} source to: {new_source}")
 
+    # TODO should run something like, but make it more isolated since this will drop other groups that were previously installed
+    # uv sync --upgrade-package starlette-context
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("module", help="Module name to toggle")
     parser.add_argument("--local", action="store_true", help="Force local path")
     parser.add_argument(
-        "--published", action="store_true", help="Force published source"
+        "--published",
+        action="store_true",
+        help="Force published github source",
     )
 
     args = parser.parse_args()
