@@ -80,7 +80,7 @@ def get_pypi_homepage(package_name: str) -> str:
     homepage = data.get("info", {}).get("home_page", "")
 
     if not homepage:
-        project_urls = data.get("info", {}).get("project_urls", {})
+        project_urls = data.get("info", {}).get("project_urls") or {}
         homepage = project_urls.get("repository", "")
 
     logger.debug(f"Found homepage: {homepage}")
