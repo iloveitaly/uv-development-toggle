@@ -8,6 +8,7 @@
 
 import argparse
 from pathlib import Path
+import sys
 
 import tomlkit
 
@@ -135,8 +136,11 @@ def toggle_module_source(
             github_url = f"{pypi_homepage}.git"
 
     if not github_url:
-        logger.error(f"Could not determine GitHub URL for {module_name}")
-        return
+        logger.warning(f"Could not determine GitHub URL for {module_name}")
+
+        if not local_path.exists():
+            logger.info(f"Local path {local_path} does not exist and gh url failed, exiting")
+            sys.exit(1)
 
     # Add branch to github_url if available
     if current_branch:
