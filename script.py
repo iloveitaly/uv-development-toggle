@@ -79,12 +79,27 @@ def get_pypi_info(package_name: str) -> dict:
 def get_pypi_homepage(package_name: str) -> str:
     data = get_pypi_info(package_name)
     homepage = data.get("info", {}).get("home_page", "")
+    
+    # Ensure homepage is not None
+    homepage = homepage or ""
 
-    if not homepage:
-        project_urls = data.get("info", {}).get("project_urls") or {}
-        homepage = project_urls.get("repository", "")
+    # Check if homepage contains github.com
+    if homepage and "github.com" in homepage:
+        return homepage
 
-    logger.debug(f"Found homepage: {homepage}")
+    # Check all project URLs for GitHub links
+    project_urls = data.get("info", {}).get("project_urls") or {}
+    
+    # First try the repository link as priority
+    if "repository" in project_urls and project_urls["repository"] and "github.com" in project_urls["repository"]:
+        return project_urls["repository"]
+    
+    # Then look in all other project links
+    for url_name, url in project_urls.items():
+        if url and "github.com" in url:
+            return url
+            
+    # Return homepage even if it's not a GitHub URL, or empty string
     return homepage
 
 
