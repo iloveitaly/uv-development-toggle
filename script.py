@@ -104,7 +104,7 @@ def get_current_branch(repo_path: Path) -> str:
 
 
 def toggle_module_source(
-    module_name: str, force_local: bool = False, force_published: bool = False
+    module_name: str, force_local: bool = False, force_published: bool = False, force_pypi: bool = False
 ):
     pyproject_path = Path("pyproject.toml")
     
@@ -119,6 +119,21 @@ def toggle_module_source(
 
     sources = config["tool"]["uv"]["sources"]
     current_source = sources.get(module_name, {})
+
+    # Handle PyPI option
+    if force_pypi:
+        # For PyPI, we remove the source entry or set it to {} to use default PyPI source
+        if module_name in sources:
+            logger.info(f"Removing custom source for {module_name} to use PyPI version")
+            del sources[module_name]
+        else:
+            logger.info(f"Already using PyPI version for {module_name}")
+        
+        # Write back with preserved comments
+        with open(pyproject_path, "w") as f:
+            tomlkit.dump(config, f)
+            
+        return
 
     dev_toggle_dir = os.environ.get("PYTHON_DEVELOPMENT_TOGGLE", "pypi")
     local_path = Path(f"{dev_toggle_dir}/{module_name}")
@@ -185,6 +200,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Force published github source",
     )
+    parser.add_argument(
+        "--pypi",
+        action="store_true",
+        help="Force PyPI published version",
+    )
 
     args = parser.parse_args()
-    toggle_module_source(args.module, args.local, args.published)
+    toggle_module_source(args.module, args.local, args.published, args.pypi)
