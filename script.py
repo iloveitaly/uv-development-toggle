@@ -107,6 +107,12 @@ def toggle_module_source(
     module_name: str, force_local: bool = False, force_published: bool = False
 ):
     pyproject_path = Path("pyproject.toml")
+    
+    # Check if the pyproject.toml exists
+    if not pyproject_path.exists():
+        logger.error("No pyproject.toml found, are you in the right folder?")
+        sys.exit(1)
+        
     # Read with tomlkit to preserve comments and structure
     with open(pyproject_path) as f:
         config = tomlkit.load(f)
