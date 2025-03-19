@@ -1,4 +1,3 @@
-
 # Python Uv Development Package Toggler
 
 A utility script for easily switching between local development and published sources for Python packages in your `pyproject.toml`.
@@ -23,7 +22,19 @@ pip install uv-development-toggle
 To toggle a package [activemodel](https://github.com/iloveitaly/activemodel/):
 
 ```shell
+uv-development-toggle activemodel --local
+```
+
+Then, after you push to a custom branch, reference the branch in your `pyproject.toml`:
+
+```shell
 uv-development-toggle activemodel --published
+```
+
+To revert a package to PyPI:
+
+```shell
+uv-development-toggle activemodel --pypi
 ```
 
 This will:
@@ -38,6 +49,7 @@ This will:
 - `MODULE_NAME`: The name of the Python module to toggle
 - `--local`: Force using local development path
 - `--published`: Force using published source
+- `--pypi`: Revert to default PyPI source
 
 ### Environment Variables
 
