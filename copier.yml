@@ -57,7 +57,7 @@ _exclude:
   - /metadata.json
 
 _tasks:
-  - git init
+  - '[ ! -d .git ] && git init'
   - touch README.md
   - uv sync
   - git add -A
