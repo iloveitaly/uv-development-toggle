@@ -1,4 +1,13 @@
-# 0.2.0 (2025-03-19)
+## [0.2.1](https://github.com/iloveitaly/uv-development-toggle/compare/v0.2.0...v0.2.1) (2025-03-19)
+
+
+### Bug Fixes
+
+* clarify argparse help messages for module toggling ([fe9200b](https://github.com/iloveitaly/uv-development-toggle/commit/fe9200b4c886e24b028ec61444c79bd0e5eb7faf))
+
+
+
+# [0.2.0](https://github.com/iloveitaly/uv-development-toggle/compare/d6ebea655086f9d0d430a1f01062222e96796a55...v0.2.0) (2025-03-19)
 
 
 ### Bug Fixes
