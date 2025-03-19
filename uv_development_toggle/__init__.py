@@ -218,17 +218,21 @@ def toggle_module_source(
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("module", help="Module name to toggle")
-    parser.add_argument("--local", action="store_true", help="Force local path")
+    parser.add_argument("module", help="Module name in pyproject.toml to toggle")
+    parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Use local editable path, and clone repo if necessary",
+    )
     parser.add_argument(
         "--published",
         action="store_true",
-        help="Force published github source",
+        help="Use github source",
     )
     parser.add_argument(
         "--pypi",
         action="store_true",
-        help="Force PyPI published version",
+        help="Use PyPI published version",
     )
 
     args = parser.parse_args()
