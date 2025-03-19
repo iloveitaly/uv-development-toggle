@@ -151,7 +151,18 @@ def toggle_module_source(
         return
 
     dev_toggle_dir = os.environ.get("PYTHON_DEVELOPMENT_TOGGLE", "pypi")
-    local_path = Path(f"{dev_toggle_dir}/{module_name}")
+    local_path_default = Path(f"{dev_toggle_dir}/{module_name}")
+    local_path_dash = Path(f"{dev_toggle_dir}/{module_name.replace('_','-')}")
+    local_path_underscore = Path(f"{dev_toggle_dir}/{module_name.replace('-','_')}")
+
+    if local_path_default.exists():
+        local_path = local_path_default
+    elif local_path_dash.exists():
+        local_path = local_path_dash
+    elif local_path_underscore.exists():
+        local_path = local_path_underscore
+    else:
+        local_path = local_path_default
 
     # Get current branch if local repo exists
     current_branch = None
