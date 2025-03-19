@@ -25,7 +25,8 @@ jobs:
       - uses: jdx/mise-action@v2
       - run: mise use python@${{ matrix.python-version }}
       - run: uv sync
-      - run: uv run ${{ github.event.repository.name }} --help
+      - name: Make sure the CLI runs properly
+        run: uv run ${{ github.event.repository.name }} --help
       - run: uv run pytest
 
   build-and-publish:
