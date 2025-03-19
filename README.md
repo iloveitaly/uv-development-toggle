@@ -20,12 +20,12 @@ pip install -r requirements.txt
 
 ## Usage
 
-```
-uv run --script script.py activemodel --published
-```
-
 To toggle a module named "activemodel":
 
+```shell
+pip install uv-development-toggle
+uv-development-toggle activemodel --published
+```
 
 This will:
 
