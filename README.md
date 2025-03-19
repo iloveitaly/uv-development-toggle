@@ -1,5 +1,5 @@
 
-# Python Development Source Toggler
+# Python Uv Development Package Toggler
 
 A utility script for easily switching between local development and published sources for Python packages in your `pyproject.toml`.
 
@@ -14,16 +14,15 @@ A utility script for easily switching between local development and published so
 
 ## Installation
 
-
-pip install -r requirements.txt
-
+```shell
+pip install uv-development-toggle
+```
 
 ## Usage
 
-To toggle a module named "activemodel":
+To toggle a package [activemodel](https://github.com/iloveitaly/activemodel/):
 
 ```shell
-pip install uv-development-toggle
 uv-development-toggle activemodel --published
 ```
 
