@@ -1,3 +1,12 @@
+## [0.2.2](https://github.com/iloveitaly/uv-development-toggle/compare/v0.2.1...v0.2.2) (2025-03-22)
+
+
+### Bug Fixes
+
+* create toml sources structure if it doesn't exist ([ebcff8f](https://github.com/iloveitaly/uv-development-toggle/commit/ebcff8f53e33e912fede1b15f330729e324325d8))
+
+
+
 ## [0.2.1](https://github.com/iloveitaly/uv-development-toggle/compare/v0.2.0...v0.2.1) (2025-03-19)
 
 

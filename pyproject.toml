@@ -1,6 +1,6 @@
 [project]
 name = "uv-development-toggle"
-version = "0.2.1"
+version = "0.2.2"
 description = "Easily toggle between development and production packages with uv. Quickly close development packages locally."
 keywords = ["uv", "development", "package"]
 readme = "README.md"
