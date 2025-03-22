@@ -129,6 +129,16 @@ def toggle_module_source(
     with open(pyproject_path) as f:
         config = tomlkit.load(f)
 
+    # Ensure the required sections exist
+    if "tool" not in config:
+        config["tool"] = tomlkit.table()
+
+    if "uv" not in config["tool"]:
+        config["tool"]["uv"] = tomlkit.table()
+
+    if "sources" not in config["tool"]["uv"]:
+        config["tool"]["uv"]["sources"] = tomlkit.table()
+
     sources = config["tool"]["uv"]["sources"]
     current_source = sources.get(module_name, {})
 
