@@ -7,13 +7,46 @@ import sys
 from pathlib import Path
 from urllib.request import urlopen
 
+import rich.console
+import rich.logging
 import tomlkit
 
+# Setup rich console for output
+console = rich.console.Console()
+
+# Setup better logging with rich
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    level=os.environ.get("LOG_LEVEL", "WARNING").upper(),
+    format="%(message)s",
+    handlers=[
+        rich.logging.RichHandler(
+            rich_tracebacks=True, markup=True, show_time=False, show_path=False
+        )
+    ],
 )
 
 logger = logging.getLogger(__name__)
+
+
+def display_source_info(module_name, source_config):
+    """Display formatted information about a package source configuration."""
+    if "path" in source_config:
+        console.print(
+            f"[bold green]✓[/bold green] Set [cyan]{module_name}[/cyan] source to local path: [yellow]{source_config['path']}[/yellow]"
+        )
+    elif "git" in source_config:
+        rev_info = (
+            f" (branch: [magenta]{source_config.get('rev')}[/magenta])"
+            if source_config.get("rev")
+            else ""
+        )
+        console.print(
+            f"[bold green]✓[/bold green] Set [cyan]{module_name}[/cyan] source to Git repo: [blue]{source_config['git']}[/blue]{rev_info}"
+        )
+    else:
+        console.print(
+            f"[bold green]✓[/bold green] Set [cyan]{module_name}[/cyan] source to: {source_config}"
+        )
 
 
 def get_github_username() -> str:
@@ -110,6 +143,34 @@ def get_current_branch(repo_path: Path) -> str:
         cwd=str(repo_path),
     )
     return result.stdout.strip()
+
+
+def uv_update_package(package_name):
+    """
+    Run uv sync to update the package after modifying pyproject.toml
+
+    This is more targeted than a full uv sync as it only updates the specific
+    package and doesn't drop other groups that were previously installed.
+    """
+    try:
+        logger.info(f"Syncing package {package_name}...")
+        result = subprocess.run(
+            ["uv", "sync", "--upgrade-package", package_name],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        logger.info(f"Successfully synced {package_name}")
+        logger.debug(f"Sync result: {result.stdout.strip()}")
+        return True
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error syncing package {package_name}: {e.stderr.strip()}")
+        return False
+    except FileNotFoundError:
+        logger.warning(
+            "'uv' command not found. Make sure it's installed and in your PATH."
+        )
+        return False
 
 
 def toggle_module_source(
@@ -220,10 +281,11 @@ def toggle_module_source(
     with open(pyproject_path, "w") as f:
         tomlkit.dump(config, f)
 
-    logger.info(f"Set {module_name} source to: {new_source}")
+    # Update the package with uv sync
+    uv_update_package(module_name)
 
-    # TODO should run something like, but make it more isolated since this will drop other groups that were previously installed
-    # uv sync --upgrade-package starlette-context
+    # Format and output the source change information
+    display_source_info(module_name, new_source)
 
 
 def main():
