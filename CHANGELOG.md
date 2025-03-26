@@ -1,3 +1,12 @@
+# [0.3.0](https://github.com/iloveitaly/uv-development-toggle/compare/v0.2.2...v0.3.0) (2025-03-26)
+
+
+### Features
+
+* integrate rich for logging and enhance package sync ([76ff245](https://github.com/iloveitaly/uv-development-toggle/commit/76ff24536954e1f74467060373b7ce0a8a37a7fe))
+
+
+
 ## [0.2.2](https://github.com/iloveitaly/uv-development-toggle/compare/v0.2.1...v0.2.2) (2025-03-22)
 
 
