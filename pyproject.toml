@@ -5,7 +5,10 @@ description = "Easily toggle between development and production packages with uv
 keywords = ["uv", "development", "package"]
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = ["tomlkit>=0.13.2"]
+dependencies = [
+    "rich>=13.9.4",
+    "tomlkit>=0.13.2",
+]
 authors = [{ name = "Michael Bianco", email = "mike@mikebian.co" }]
 urls = { "Repository" = "https://github.com/iloveitaly/uv-development-toggle" }
 
