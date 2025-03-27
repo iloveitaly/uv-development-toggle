@@ -11,6 +11,7 @@ A utility script for easily switching between local development and published so
 - Falls back to PyPI metadata if direct GitHub repository is not found
 - Integrates with GitHub CLI for username detection
 - Creates necessary TOML structure (`tool.uv.sources`) if it doesn't exist
+- Automatically runs `uv sync --upgrade-package` after successful updates
 
 ## Installation
 
@@ -44,6 +45,7 @@ This will:
 2. If switching to local and the repository doesn't exist, clone it automatically (attempts to determine the repo URL from pypi information)
 3. Update your `pyproject.toml` with the appropriate source configuration (creating the `tool.uv.sources` structure if needed)
 4. Preserve any existing branch information when toggling
+5. Automatically run `uv sync --upgrade-package <package_name>` to apply the changes
 
 ### Arguments
 
