@@ -28,24 +28,52 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def display_source_info(module_name, source_config):
-    """Display formatted information about a package source configuration."""
-    if "path" in source_config:
+def display_status(status_type, module_name, details=None):
+    """
+    Display a formatted status message using rich console.
+
+    Args:
+        status_type: Type of status ('source_path', 'source_git', 'source_other', 'pypi', 'pypi_already',
+                                    'error', 'warning', 'info')
+        module_name: Name of the module being processed
+        details: Additional details or data to display (e.g., source configuration)
+    """
+    if status_type == "source_path":
         console.print(
-            f"[bold green]✓[/bold green] Set [cyan]{module_name}[/cyan] source to local path: [yellow]{source_config['path']}[/yellow]"
+            f"[bold green]✓[/bold green] Set [cyan]{module_name}[/cyan] source to local path: [yellow]{details['path']}[/yellow]"
         )
-    elif "git" in source_config:
+    elif status_type == "source_git":
         rev_info = (
-            f" (branch: [magenta]{source_config.get('rev')}[/magenta])"
-            if source_config.get("rev")
+            f" (branch: [magenta]{details.get('rev')}[/magenta])"
+            if details.get("rev")
             else ""
         )
         console.print(
-            f"[bold green]✓[/bold green] Set [cyan]{module_name}[/cyan] source to Git repo: [blue]{source_config['git']}[/blue]{rev_info}"
+            f"[bold green]✓[/bold green] Set [cyan]{module_name}[/cyan] source to Git repo: [blue]{details['git']}[/blue]{rev_info}"
         )
-    else:
+    elif status_type == "source_other":
         console.print(
-            f"[bold green]✓[/bold green] Set [cyan]{module_name}[/cyan] source to: {source_config}"
+            f"[bold green]✓[/bold green] Set [cyan]{module_name}[/cyan] source to: {details}"
+        )
+    elif status_type == "pypi":
+        console.print(
+            f"[bold green]✓[/bold green] Removing custom source for [cyan]{module_name}[/cyan] to use [magenta]PyPI version[/magenta]"
+        )
+    elif status_type == "pypi_already":
+        console.print(
+            f"[bold green]✓[/bold green] Already using [magenta]PyPI version[/magenta] for [cyan]{module_name}[/cyan]"
+        )
+    elif status_type == "error":
+        console.print(
+            f"[bold red]✗[/bold red] Error: {details} for [cyan]{module_name}[/cyan]"
+        )
+    elif status_type == "warning":
+        console.print(
+            f"[bold yellow]![/bold yellow] Warning: {details} for [cyan]{module_name}[/cyan]"
+        )
+    elif status_type == "info":
+        console.print(
+            f"[bold blue]i[/bold blue] {details} for [cyan]{module_name}[/cyan]"
         )
 
 
@@ -153,15 +181,15 @@ def uv_update_package(package_name):
     package and doesn't drop other groups that were previously installed.
     """
     try:
-        logger.info(f"Syncing package {package_name}...")
+        logger.info(f"Upgrading package reference {package_name}...")
         result = subprocess.run(
             ["uv", "sync", "--upgrade-package", package_name],
             check=True,
             capture_output=True,
             text=True,
         )
-        logger.info(f"Successfully synced {package_name}")
-        logger.debug(f"Sync result: {result.stdout.strip()}")
+        logger.info(f"Successfully upgraded {package_name}")
+        logger.debug(f"Sync result: {result.stdout.strip()} {result.stderr.strip()}")
         return True
     except subprocess.CalledProcessError as e:
         logger.error(f"Error syncing package {package_name}: {e.stderr.strip()}")
@@ -207,14 +235,17 @@ def toggle_module_source(
     if force_pypi:
         # For PyPI, we remove the source entry or set it to {} to use default PyPI source
         if module_name in sources:
-            logger.info(f"Removing custom source for {module_name} to use PyPI version")
+            display_status("pypi", module_name)
             del sources[module_name]
         else:
-            logger.info(f"Already using PyPI version for {module_name}")
+            display_status("pypi_already", module_name)
 
         # Write back with preserved comments
         with open(pyproject_path, "w") as f:
             tomlkit.dump(config, f)
+
+        # Update the package with uv sync even when reverting to PyPI
+        uv_update_package(module_name)
 
         return
 
@@ -251,11 +282,13 @@ def toggle_module_source(
             github_url = f"{pypi_homepage}.git"
 
     if not github_url:
-        logger.warning(f"Could not determine GitHub URL for {module_name}")
+        display_status("warning", module_name, "Could not determine GitHub URL")
 
         if not local_path.exists():
-            logger.info(
-                f"Local path {local_path} does not exist and gh url failed, exiting"
+            display_status(
+                "error",
+                module_name,
+                f"Local path {local_path} does not exist and GitHub URL detection failed",
             )
             sys.exit(1)
 
@@ -270,7 +303,9 @@ def toggle_module_source(
     if force_local or (not force_published and "git" in current_source):
         new_source = local_source
         if not local_path.exists():
-            logger.info(f"Local path {local_path} does not exist")
+            display_status(
+                "info", module_name, f"Local path {local_path} does not exist"
+            )
             clone_repo(github_url, local_path)
     else:
         new_source = published_source
@@ -285,7 +320,12 @@ def toggle_module_source(
     uv_update_package(module_name)
 
     # Format and output the source change information
-    display_source_info(module_name, new_source)
+    if "path" in new_source:
+        display_status("source_path", module_name, new_source)
+    elif "git" in new_source:
+        display_status("source_git", module_name, new_source)
+    else:
+        display_status("source_other", module_name, new_source)
 
 
 def main():
