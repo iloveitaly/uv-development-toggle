@@ -34,7 +34,7 @@ def display_status(status_type, module_name, details=None):
 
     Args:
         status_type: Type of status ('source_path', 'source_git', 'source_other', 'pypi', 'pypi_already',
-                                    'error', 'warning', 'info')
+                                    'error', 'warning', 'info', 'found_editable')
         module_name: Name of the module being processed
         details: Additional details or data to display (e.g., source configuration)
     """
@@ -74,6 +74,10 @@ def display_status(status_type, module_name, details=None):
     elif status_type == "info":
         console.print(
             f"[bold blue]i[/bold blue] {details} for [cyan]{module_name}[/cyan]"
+        )
+    elif status_type == "found_editable":
+        console.print(
+            f"[bold yellow]![/bold yellow] Found editable package [cyan]{module_name}[/cyan]: [yellow]{details.get('path')}[/yellow]"
         )
 
 
@@ -328,9 +332,64 @@ def toggle_module_source(
         display_status("source_other", module_name, new_source)
 
 
+def find_and_update_editable_sources(switch_to_published=False):
+    """
+    Find all packages with editable sources in pyproject.toml and update them.
+
+    Args:
+        switch_to_published: If True, switch to published sources, otherwise just report.
+
+    Returns:
+        List of package names that were updated
+    """
+    pyproject_path = Path("pyproject.toml")
+
+    # Check if the pyproject.toml exists
+    if not pyproject_path.exists():
+        display_status(
+            "error", "pyproject.toml", "File not found, are you in the right folder?"
+        )
+        sys.exit(1)
+
+    # Read with tomlkit to preserve comments and structure
+    with open(pyproject_path) as f:
+        config = tomlkit.load(f)
+
+    # Check if the structure exists
+    if (
+        "tool" not in config
+        or "uv" not in config["tool"]
+        or "sources" not in config["tool"]["uv"]
+    ):
+        display_status("info", "pyproject.toml", "No uv sources configuration found")
+        return []
+
+    sources = config["tool"]["uv"]["sources"]
+    editable_packages = []
+
+    # Find all editable sources
+    for package_name, source_config in sources.items():
+        if isinstance(source_config, dict) and source_config.get("editable"):
+            editable_packages.append(package_name)
+            display_status("found_editable", package_name, source_config)
+
+            if switch_to_published:
+                # Process each editable package to convert to published source
+                toggle_module_source(
+                    package_name, force_local=False, force_published=True
+                )
+
+    if not editable_packages:
+        display_status("info", "pyproject.toml", "No editable packages found")
+
+    return editable_packages
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("module", help="Module name in pyproject.toml to toggle")
+    parser.add_argument(
+        "module", nargs="?", help="Module name in pyproject.toml to toggle"
+    )
     parser.add_argument(
         "--local",
         action="store_true",
@@ -346,8 +405,26 @@ def main():
         action="store_true",
         help="Use PyPI published version",
     )
+    parser.add_argument(
+        "--remove-editable",
+        action="store_true",
+        help="Find all editable packages and switch them to published sources",
+    )
 
     args = parser.parse_args()
+
+    if args.remove_editable:
+        console.print("[bold]Searching for editable packages...[/bold]")
+        packages = find_and_update_editable_sources(switch_to_published=True)
+        if packages:
+            console.print(
+                f"[bold green]✓[/bold green] Converted [cyan]{len(packages)}[/cyan] editable packages to published sources"
+            )
+        return
+
+    if not args.module:
+        parser.error("module name is required unless using --remove-editable")
+
     toggle_module_source(args.module, args.local, args.published, args.pypi)
 
 
