@@ -1,3 +1,12 @@
+# [0.4.0](https://github.com/iloveitaly/uv-development-toggle/compare/v0.3.0...v0.4.0) (2025-03-31)
+
+
+### Features
+
+* add functionality to manage editable sources ([7cb791b](https://github.com/iloveitaly/uv-development-toggle/commit/7cb791b6f03186e2e10c07f40f0ef0cfa5770103))
+
+
+
 # [0.3.0](https://github.com/iloveitaly/uv-development-toggle/compare/v0.2.2...v0.3.0) (2025-03-26)
 
 
