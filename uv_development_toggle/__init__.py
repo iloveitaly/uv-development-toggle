@@ -422,6 +422,46 @@ def main():
             )
         return
 
+    # If 'all' is passed as the module and --local is NOT set, apply --published or --pypi to all editable packages
+    if args.module == "all" and not args.local:
+        pyproject_path = Path("pyproject.toml")
+        if not pyproject_path.exists():
+            display_status(
+                "error",
+                "pyproject.toml",
+                "File not found, are you in the right folder?",
+            )
+            sys.exit(1)
+        with open(pyproject_path) as f:
+            config = tomlkit.load(f)
+        sources = config.get("tool", {}).get("uv", {}).get("sources", {})
+        editable_packages = [
+            pkg
+            for pkg, src in sources.items()
+            if isinstance(src, dict) and src.get("editable")
+        ]
+        if not editable_packages:
+            display_status("info", "pyproject.toml", "No editable packages found")
+            return
+        for pkg in editable_packages:
+            if args.pypi:
+                toggle_module_source(
+                    pkg, force_local=False, force_published=False, force_pypi=True
+                )
+            else:
+                toggle_module_source(
+                    pkg, force_local=False, force_published=True, force_pypi=False
+                )
+        console.print(
+            f"[bold green]✓[/bold green] Updated [cyan]{len(editable_packages)}[/cyan] editable packages to "
+            + (
+                "[magenta]PyPI[/magenta]"
+                if args.pypi
+                else "[blue]published sources[/blue]"
+            )
+        )
+        return
+
     if not args.module:
         parser.error("module name is required unless using --remove-editable")
 
