@@ -313,16 +313,36 @@ def toggle_module_source(
     github_url = None
     username = get_github_username()
 
+    # Try username/module_name convention first
+    repo_valid = False
     if username and check_github_repo_exists(username, module_name):
-        github_url = f"https://github.com/{username}/{module_name}.git"
+        candidate_url = f"https://github.com/{username}/{module_name}.git"
+        if check_github_repo_is_python_package(candidate_url):
+            github_url = candidate_url
+            repo_valid = True
+        else:
+            # Try PyPI homepage as fallback if user repo is not valid
+            pypi_homepage = get_pypi_homepage(module_name)
+            if "github.com" in pypi_homepage:
+                pypi_url = pypi_homepage
+                if not pypi_url.endswith(".git"):
+                    pypi_url += ".git"
+                if check_github_repo_is_python_package(pypi_url):
+                    github_url = pypi_url
+                    repo_valid = True
     else:
+        # Fallback to PyPI homepage
         pypi_homepage = get_pypi_homepage(module_name)
         if "github.com" in pypi_homepage:
-            github_url = f"{pypi_homepage}.git"
+            pypi_url = pypi_homepage
+            if not pypi_url.endswith(".git"):
+                pypi_url += ".git"
+            if check_github_repo_is_python_package(pypi_url):
+                github_url = pypi_url
+                repo_valid = True
 
     if not github_url:
         display_status("warning", module_name, "Could not determine GitHub URL")
-
         if not local_path.exists():
             display_status(
                 "error",
@@ -331,12 +351,11 @@ def toggle_module_source(
             )
             sys.exit(1)
 
-    # Add branch to github_url if available
-    if current_branch:
-        published_source = {"git": github_url, "rev": current_branch}
-    else:
-        published_source = {"git": github_url}
-
+    published_source = (
+        {"git": github_url, "rev": current_branch}
+        if current_branch
+        else {"git": github_url}
+    )
     local_source = {"path": str(local_path), "editable": True}
 
     if force_local or (not force_published and "git" in current_source):
@@ -349,12 +368,11 @@ def toggle_module_source(
                     f"Local path {local_path} does not exist and cannot clone without a GitHub URL.",
                 )
                 sys.exit(1)
-            # Check if the GitHub repo is a Python package before cloning
-            if not check_github_repo_is_python_package(github_url):
+            if not repo_valid:
                 display_status(
                     "error",
                     module_name,
-                    f"GitHub repo {github_url} does not appear to be a valid Python package (missing pyproject.toml/setup.py/setup.cfg). Cannot clone.",
+                    f"Neither {username}/{module_name} nor the PyPI GitHub reference appear to be valid Python packages (missing pyproject.toml/setup.py/setup.cfg). Cannot clone.",
                 )
                 sys.exit(1)
             display_status(
