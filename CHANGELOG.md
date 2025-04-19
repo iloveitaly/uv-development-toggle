@@ -1,3 +1,17 @@
+# [0.6.0](https://github.com/iloveitaly/uv-development-toggle/compare/v0.5.0...v0.6.0) (2025-04-19)
+
+
+### Bug Fixes
+
+* clone pypi repo if the local one exists but does not look like python ([5fec3ac](https://github.com/iloveitaly/uv-development-toggle/commit/5fec3ace7b5a27120d48849ee3cc76622449e827))
+
+
+### Features
+
+* check for python package indicators before cloning repos ([ed8254e](https://github.com/iloveitaly/uv-development-toggle/commit/ed8254e234ed60ce3f0d41871d5e90240e28b076))
+
+
+
 # [0.5.0](https://github.com/iloveitaly/uv-development-toggle/compare/v0.4.0...v0.5.0) (2025-04-17)
 
 
@@ -31,15 +45,6 @@
 ### Bug Fixes
 
 * create toml sources structure if it doesn't exist ([ebcff8f](https://github.com/iloveitaly/uv-development-toggle/commit/ebcff8f53e33e912fede1b15f330729e324325d8))
-
-
-
-## [0.2.1](https://github.com/iloveitaly/uv-development-toggle/compare/v0.2.0...v0.2.1) (2025-03-19)
-
-
-### Bug Fixes
-
-* clarify argparse help messages for module toggling ([fe9200b](https://github.com/iloveitaly/uv-development-toggle/commit/fe9200b4c886e24b028ec61444c79bd0e5eb7faf))
 
 
 
