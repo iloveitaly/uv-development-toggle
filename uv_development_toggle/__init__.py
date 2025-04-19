@@ -2,10 +2,12 @@ import argparse
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 import rich.console
 import rich.logging
@@ -205,6 +207,39 @@ def uv_update_package(package_name):
         return False
 
 
+def check_github_repo_is_python_package(github_url: str) -> bool:
+    """
+    Checks if a GitHub repository contains a pyproject.toml, setup.py, or setup.cfg file in its root via the GitHub API.
+    """
+    match = re.match(r"https?://github\.com/([^/]+)/([^/.]+)(\.git)?", github_url)
+    if not match:
+        logger.warning(f"Could not parse username/repo from URL: {github_url}")
+        return False
+
+    username, repo = match.groups()[:2]
+    indicators = ["pyproject.toml", "setup.py", "setup.cfg"]
+    for fname in indicators:
+        api_url = f"https://api.github.com/repos/{username}/{repo}/contents/{fname}"
+        try:
+            req = Request(api_url, method="HEAD")
+            urlopen(req)
+            logger.debug(f"Found {fname} in {username}/{repo}")
+            return True
+        except HTTPError as e:
+            if e.code == 404:
+                logger.debug(f"{fname} not found in {username}/{repo}")
+            else:
+                logger.warning(f"HTTP error checking for {fname}: {e.code} {e.reason}")
+        except URLError as e:
+            logger.error(f"URL error connecting to GitHub API: {e.reason}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error checking for {fname}: {e}")
+            return False
+    logger.debug(f"No Python package indicators found in {username}/{repo}")
+    return False
+
+
 def toggle_module_source(
     module_name: str,
     force_local: bool = False,
@@ -307,6 +342,21 @@ def toggle_module_source(
     if force_local or (not force_published and "git" in current_source):
         new_source = local_source
         if not local_path.exists():
+            if not github_url:
+                display_status(
+                    "error",
+                    module_name,
+                    f"Local path {local_path} does not exist and cannot clone without a GitHub URL.",
+                )
+                sys.exit(1)
+            # Check if the GitHub repo is a Python package before cloning
+            if not check_github_repo_is_python_package(github_url):
+                display_status(
+                    "error",
+                    module_name,
+                    f"GitHub repo {github_url} does not appear to be a valid Python package (missing pyproject.toml/setup.py/setup.cfg). Cannot clone.",
+                )
+                sys.exit(1)
             display_status(
                 "info", module_name, f"Local path {local_path} does not exist"
             )
