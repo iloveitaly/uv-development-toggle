@@ -147,17 +147,28 @@ def get_pypi_homepage(package_name: str) -> str:
     # Check all project URLs for GitHub links
     project_urls = data.get("info", {}).get("project_urls") or {}
 
-    # First try the repository link as priority
-    if (
-        "repository" in project_urls
-        and project_urls["repository"]
-        and "github.com" in project_urls["repository"]
-    ):
-        return project_urls["repository"]
+    # Priority order for URL keys
+    priority_keys = ["repository", "Repository", "source", "Source", "source code", "Source Code"]
+    
+    # First try high-priority repository/source keys
+    for key in priority_keys:
+        if (
+            key in project_urls
+            and project_urls[key]
+            and "github.com" in project_urls[key]
+        ):
+            return project_urls[key]
 
-    # Then look in all other project links
+    # Skip non-repository URLs like Changelog, Documentation, Issues
+    skip_keys = ["changelog", "Changelog", "documentation", "Documentation", "issues", "Issues", "bug tracker", "Bug Tracker"]
+    
+    # Then look in all other project links, excluding non-repository URLs
     for url_name, url in project_urls.items():
-        if url and "github.com" in url:
+        # Skip if this is a non-repository URL
+        if any(skip_key.lower() in url_name.lower() for skip_key in skip_keys):
+            continue
+        # Skip URLs that point to specific files (e.g., /blob/, /tree/)
+        if url and "github.com" in url and "/blob/" not in url and "/tree/" not in url:
             return url
 
     # Return homepage even if it's not a GitHub URL, or empty string
