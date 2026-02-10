@@ -21,11 +21,9 @@ A utility script for easily switching between local development and published so
 ## Installation
 
 ```shell
-uv add uv-development-toggle
-```
+uv add --dev uv-development-toggle
 
-```shell
-pip install uv-development-toggle
+uv tool install uv-development-toggle
 ```
 
 ## Usage
