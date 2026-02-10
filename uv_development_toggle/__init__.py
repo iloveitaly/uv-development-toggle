@@ -1,15 +1,20 @@
-import json
+import logging
 import logging
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 
 import click
 import tomlkit
+
+from uv_development_toggle.git_utils import (
+    check_github_repo_exists,
+    check_github_repo_is_python_package,
+    get_github_username,
+)
+from uv_development_toggle.pypi import get_pypi_homepage
+from uv_development_toggle.status import display_status, format_status_label
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "WARNING").upper(),
@@ -17,153 +22,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
-
-def format_status_label(label: str, color: str) -> str:
-    return click.style(label, fg=color, bold=True)
-
-
-def display_status(status_type, module_name, details=None):
-    if details is None:
-        details = {}
-    """
-    Display a formatted status message using rich console.
-
-    Args:
-        status_type: Type of status ('source_path', 'source_git', 'source_other', 'pypi', 'pypi_already',
-                                    'error', 'warning', 'info', 'found_editable')
-        module_name: Name of the module being processed
-        details: Additional details or data to display (e.g., source configuration)
-    """
-    if status_type == "source_path":
-        message = f"Set {module_name} source to local path: {details['path']}"
-        click.echo(f"{format_status_label('OK', 'green')} {message}")
-    elif status_type == "source_git":
-        rev_info = f" (branch: {details.get('rev')})" if details.get("rev") else ""
-        message = f"Set {module_name} source to Git repo: {details['git']}{rev_info}"
-        click.echo(f"{format_status_label('OK', 'green')} {message}")
-    elif status_type == "source_other":
-        message = f"Set {module_name} source to: {details}"
-        click.echo(f"{format_status_label('OK', 'green')} {message}")
-    elif status_type == "pypi":
-        message = f"Removing custom source for {module_name} to use PyPI version"
-        click.echo(f"{format_status_label('OK', 'green')} {message}")
-    elif status_type == "pypi_already":
-        message = f"Already using PyPI version for {module_name}"
-        click.echo(f"{format_status_label('OK', 'green')} {message}")
-    elif status_type == "error":
-        message = f"Error: {details} for {module_name}"
-        click.echo(f"{format_status_label('ERROR', 'red')} {message}")
-    elif status_type == "warning":
-        message = f"Warning: {details} for {module_name}"
-        click.echo(f"{format_status_label('WARN', 'yellow')} {message}")
-    elif status_type == "info":
-        message = f"{details} for {module_name}"
-        click.echo(f"{format_status_label('INFO', 'blue')} {message}")
-    elif status_type == "found_editable":
-        message = f"Found editable package {module_name}: {details.get('path')}"
-        click.echo(f"{format_status_label('WARN', 'yellow')} {message}")
-
-
-def get_github_username() -> str | None:
-    logger.debug("Attempting to get GitHub username")
-    # Try gh cli first
-    try:
-        result = subprocess.run(["gh", "api", "user"], capture_output=True, text=True)
-        if result.returncode == 0:
-            username = json.loads(result.stdout)["login"]
-            logger.debug(f"Found username via gh cli: {username}")
-            return username
-    except FileNotFoundError:
-        logger.debug("gh cli not found, trying git config")
-
-    # Fall back to git config
-    try:
-        result = subprocess.run(
-            ["git", "config", "user.name"], capture_output=True, text=True
-        )
-        if result.returncode == 0:
-            username = result.stdout.strip()
-            logger.debug(f"Found username via git config: {username}")
-            return username
-    except FileNotFoundError:
-        logger.debug("git not found")
-
-    return None
-
-
-def check_github_repo_exists(username: str, repo: str) -> bool:
-    logger.debug(f"Checking if repo exists: {username}/{repo}")
-    try:
-        urlopen(f"https://github.com/{username}/{repo}")
-        logger.debug("Repository found")
-        return True
-    except (HTTPError, URLError):
-        logger.debug("Repository not found")
-        return False
-
-
-def get_pypi_info(package_name: str) -> dict:
-    logger.debug(f"Fetching PyPI data for {package_name}")
-    try:
-        with urlopen(f"https://pypi.org/pypi/{package_name}/json") as response:
-            data = json.loads(response.read())
-            logger.debug("Successfully fetched PyPI data")
-            return data
-    except (HTTPError, URLError):
-        logger.debug("Failed to fetch PyPI data")
-        return {}
-
-
-def is_repository_url(url: str) -> bool:
-    if "github.com" not in url:
-        return False
-
-    return "/blob/" not in url and "/tree/" not in url
-
-
-def normalize_project_url_key(key: str) -> str:
-    return key.strip().lower()
-
-
-def get_pypi_homepage(package_name: str) -> str:
-    data = get_pypi_info(package_name)
-    homepage = data.get("info", {}).get("home_page", "") or ""
-
-    if homepage and is_repository_url(homepage):
-        return homepage
-
-    project_urls = data.get("info", {}).get("project_urls") or {}
-    normalized_urls = {
-        normalize_project_url_key(key): url for key, url in project_urls.items()
-    }
-
-    priority_keys = ("repository", "source", "source code")
-    for key in priority_keys:
-        url = normalized_urls.get(key, "")
-        if url and is_repository_url(url):
-            return url
-
-    skip_keys = (
-        "changelog",
-        "documentation",
-        "docs",
-        "issues",
-        "bug tracker",
-        "bugtracker",
-    )
-    for key, url in normalized_urls.items():
-        if key in skip_keys:
-            continue
-
-        if url and is_repository_url(url):
-            return url
-
-    for url in normalized_urls.values():
-        if url and "github.com" in url:
-            return url
-
-    return homepage
 
 
 def clone_repo(github_url: str, target_path: Path):
@@ -209,39 +67,6 @@ def uv_update_package(package_name):
         return False
 
 
-def check_github_repo_is_python_package(github_url: str) -> bool:
-    """
-    Checks if a GitHub repository contains a pyproject.toml, setup.py, or setup.cfg file in its root via the GitHub API.
-    """
-    match = re.match(r"https?://github\.com/([^/]+)/([^/.]+)(\.git)?", github_url)
-    if not match:
-        logger.warning(f"Could not parse username/repo from URL: {github_url}")
-        return False
-
-    username, repo = match.groups()[:2]
-    indicators = ["pyproject.toml", "setup.py", "setup.cfg"]
-    for fname in indicators:
-        api_url = f"https://api.github.com/repos/{username}/{repo}/contents/{fname}"
-        try:
-            req = Request(api_url, method="HEAD")
-            urlopen(req)
-            logger.debug(f"Found {fname} in {username}/{repo}")
-            return True
-        except HTTPError as e:
-            if e.code == 404:
-                logger.debug(f"{fname} not found in {username}/{repo}")
-            else:
-                logger.warning(f"HTTP error checking for {fname}: {e.code} {e.reason}")
-        except URLError as e:
-            logger.error(f"URL error connecting to GitHub API: {e.reason}")
-            return False
-        except Exception as e:
-            logger.error(f"Unexpected error checking for {fname}: {e}")
-            return False
-    logger.debug(f"No Python package indicators found in {username}/{repo}")
-    return False
-
-
 def toggle_module_source(
     module_name: str,
     force_local: bool = False,
@@ -256,8 +81,7 @@ def toggle_module_source(
         sys.exit(1)
 
     # Read with tomlkit to preserve comments and structure
-    with open(pyproject_path) as f:
-        config = tomlkit.load(f)
+    config = tomlkit.loads(pyproject_path.read_text())
 
     tool_config = config.setdefault("tool", tomlkit.table())
     uv_config = tool_config.setdefault("uv", tomlkit.table())
@@ -274,8 +98,7 @@ def toggle_module_source(
             display_status("pypi_already", module_name)
 
         # Write back with preserved comments
-        with open(pyproject_path, "w") as f:
-            tomlkit.dump(config, f)
+        pyproject_path.write_text(tomlkit.dumps(config))
 
         # Update the package with uv sync even when reverting to PyPI
         uv_update_package(module_name)
@@ -379,8 +202,7 @@ def toggle_module_source(
     sources[module_name] = new_source
 
     # Write back with preserved comments
-    with open(pyproject_path, "w") as f:
-        tomlkit.dump(config, f)
+    pyproject_path.write_text(tomlkit.dumps(config))
 
     # Update the package with uv sync
     uv_update_package(module_name)
@@ -414,8 +236,7 @@ def find_and_update_editable_sources(switch_to_published=False):
         sys.exit(1)
 
     # Read with tomlkit to preserve comments and structure
-    with open(pyproject_path) as f:
-        config = tomlkit.load(f)
+    config = tomlkit.loads(pyproject_path.read_text())
 
     sources = config.get("tool", {}).get("uv", {}).get("sources")
     if not sources:
@@ -462,8 +283,7 @@ def main(module, force_local, force_published, force_pypi, remove_editable):
                 "File not found, are you in the right folder?",
             )
             sys.exit(1)
-        with open(pyproject_path) as f:
-            config = tomlkit.load(f)
+        config = tomlkit.loads(pyproject_path.read_text())
         sources = config.get("tool", {}).get("uv", {}).get("sources", {})
         editable_packages = [
             pkg

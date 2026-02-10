@@ -11,6 +11,7 @@ import tomlkit
 from click.testing import CliRunner
 
 import uv_development_toggle as toggle
+from uv_development_toggle import git_utils, pypi
 
 
 def write_pyproject(pyproject_path: Path, sources: dict) -> None:
@@ -129,10 +130,10 @@ def test_check_github_repo_exists(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_urlopen_fail(_url: str) -> None:
         raise HTTPError(_url, 404, "not found", HTTPMessage(), None)
 
-    monkeypatch.setattr(toggle, "urlopen", fake_urlopen_success)
+    monkeypatch.setattr(git_utils, "urlopen", fake_urlopen_success)
     assert toggle.check_github_repo_exists("alice", "repo") is True
 
-    monkeypatch.setattr(toggle, "urlopen", fake_urlopen_fail)
+    monkeypatch.setattr(git_utils, "urlopen", fake_urlopen_fail)
     assert toggle.check_github_repo_exists("alice", "repo") is False
 
 
@@ -153,11 +154,11 @@ def test_get_pypi_info_success_and_failure(monkeypatch: pytest.MonkeyPatch) -> N
     def fake_urlopen_fail(_url: str) -> None:
         raise URLError("fail")
 
-    monkeypatch.setattr(toggle, "urlopen", fake_urlopen_success)
-    assert toggle.get_pypi_info("demo")["info"]["home_page"] == "https://example.com"
+    monkeypatch.setattr(pypi, "urlopen", fake_urlopen_success)
+    assert pypi.get_pypi_info("demo")["info"]["home_page"] == "https://example.com"
 
-    monkeypatch.setattr(toggle, "urlopen", fake_urlopen_fail)
-    assert toggle.get_pypi_info("demo") == {}
+    monkeypatch.setattr(pypi, "urlopen", fake_urlopen_fail)
+    assert pypi.get_pypi_info("demo") == {}
 
 
 def test_get_pypi_homepage_variants(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -293,7 +294,7 @@ def test_check_github_repo_is_python_package(monkeypatch: pytest.MonkeyPatch) ->
             return object()
         raise HTTPError(url, 404, "not found", HTTPMessage(), None)
 
-    monkeypatch.setattr(toggle, "urlopen", fake_urlopen)
+    monkeypatch.setattr(git_utils, "urlopen", fake_urlopen)
 
     assert (
         toggle.check_github_repo_is_python_package("https://github.com/acme/demo.git")
@@ -304,7 +305,7 @@ def test_check_github_repo_is_python_package(monkeypatch: pytest.MonkeyPatch) ->
         url = getattr(req, "full_url", "")
         raise HTTPError(url, 404, "not found", HTTPMessage(), None)
 
-    monkeypatch.setattr(toggle, "urlopen", fake_urlopen_missing)
+    monkeypatch.setattr(git_utils, "urlopen", fake_urlopen_missing)
 
     assert (
         toggle.check_github_repo_is_python_package("https://github.com/acme/demo.git")
