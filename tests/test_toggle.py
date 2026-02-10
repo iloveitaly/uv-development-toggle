@@ -163,14 +163,14 @@ def test_get_pypi_info_success_and_failure(monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_get_pypi_homepage_variants(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        toggle,
+        pypi,
         "get_pypi_info",
         lambda _name: {"info": {"home_page": "https://github.com/acme/demo"}},
     )
     assert toggle.get_pypi_homepage("demo") == "https://github.com/acme/demo"
 
     monkeypatch.setattr(
-        toggle,
+        pypi,
         "get_pypi_info",
         lambda _name: {
             "info": {
@@ -182,7 +182,7 @@ def test_get_pypi_homepage_variants(monkeypatch: pytest.MonkeyPatch) -> None:
     assert toggle.get_pypi_homepage("demo") == "https://github.com/acme/demo"
 
     monkeypatch.setattr(
-        toggle,
+        pypi,
         "get_pypi_info",
         lambda _name: {
             "info": {
@@ -194,7 +194,7 @@ def test_get_pypi_homepage_variants(monkeypatch: pytest.MonkeyPatch) -> None:
     assert toggle.get_pypi_homepage("demo") == "https://github.com/acme/demo"
 
     monkeypatch.setattr(
-        toggle,
+        pypi,
         "get_pypi_info",
         lambda _name: {"info": {"home_page": "https://example.com"}},
     )
@@ -205,7 +205,7 @@ def test_get_pypi_homepage_prioritizes_source_over_changelog(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        toggle,
+        pypi,
         "get_pypi_info",
         lambda _name: {
             "info": {
@@ -227,7 +227,7 @@ def test_get_pypi_homepage_skips_blob_and_tree_urls(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        toggle,
+        pypi,
         "get_pypi_info",
         lambda _name: {
             "info": {
