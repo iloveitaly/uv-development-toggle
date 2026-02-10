@@ -10,7 +10,6 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 import rich.console
-import rich.logging
 import tomlkit
 
 console = rich.console.Console()
@@ -18,11 +17,6 @@ console = rich.console.Console()
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "WARNING").upper(),
     format="%(message)s",
-    handlers=[
-        rich.logging.RichHandler(
-            rich_tracebacks=True, markup=True, show_time=False, show_path=False
-        )
-    ],
 )
 
 logger = logging.getLogger(__name__)
