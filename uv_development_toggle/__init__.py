@@ -115,34 +115,54 @@ def get_pypi_info(package_name: str) -> dict:
         return {}
 
 
+def is_repository_url(url: str) -> bool:
+    if "github.com" not in url:
+        return False
+
+    return "/blob/" not in url and "/tree/" not in url
+
+
+def normalize_project_url_key(key: str) -> str:
+    return key.strip().lower()
+
+
 def get_pypi_homepage(package_name: str) -> str:
     data = get_pypi_info(package_name)
-    homepage = data.get("info", {}).get("home_page", "")
+    homepage = data.get("info", {}).get("home_page", "") or ""
 
-    # Ensure homepage is not None
-    homepage = homepage or ""
-
-    # Check if homepage contains github.com
-    if homepage and "github.com" in homepage:
+    if homepage and is_repository_url(homepage):
         return homepage
 
-    # Check all project URLs for GitHub links
     project_urls = data.get("info", {}).get("project_urls") or {}
+    normalized_urls = {
+        normalize_project_url_key(key): url for key, url in project_urls.items()
+    }
 
-    # First try the repository link as priority
-    if (
-        "repository" in project_urls
-        and project_urls["repository"]
-        and "github.com" in project_urls["repository"]
-    ):
-        return project_urls["repository"]
+    priority_keys = ("repository", "source", "source code")
+    for key in priority_keys:
+        url = normalized_urls.get(key, "")
+        if url and is_repository_url(url):
+            return url
 
-    # Then look in all other project links
-    for url_name, url in project_urls.items():
+    skip_keys = (
+        "changelog",
+        "documentation",
+        "docs",
+        "issues",
+        "bug tracker",
+        "bugtracker",
+    )
+    for key, url in normalized_urls.items():
+        if key in skip_keys:
+            continue
+
+        if url and is_repository_url(url):
+            return url
+
+    for url in normalized_urls.values():
         if url and "github.com" in url:
             return url
 
-    # Return homepage even if it's not a GitHub URL, or empty string
     return homepage
 
 

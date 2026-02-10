@@ -200,6 +200,48 @@ def test_get_pypi_homepage_variants(monkeypatch: pytest.MonkeyPatch) -> None:
     assert toggle.get_pypi_homepage("demo") == "https://example.com"
 
 
+def test_get_pypi_homepage_prioritizes_source_over_changelog(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        toggle,
+        "get_pypi_info",
+        lambda _name: {
+            "info": {
+                "home_page": "https://example.com",
+                "project_urls": {
+                    "Documentation": "https://github.com/acme/demo#readme",
+                    "Issues": "https://github.com/acme/demo/issues",
+                    "Source": "https://github.com/acme/demo",
+                    "Changelog": "https://github.com/acme/demo/blob/main/CHANGELOG.md",
+                },
+            }
+        },
+    )
+
+    assert toggle.get_pypi_homepage("demo") == "https://github.com/acme/demo"
+
+
+def test_get_pypi_homepage_skips_blob_and_tree_urls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        toggle,
+        "get_pypi_info",
+        lambda _name: {
+            "info": {
+                "home_page": "https://github.com/acme/demo/blob/main/README.md",
+                "project_urls": {
+                    "Documentation": "https://github.com/acme/demo/tree/main/docs",
+                    "Repository": "https://github.com/acme/demo",
+                },
+            }
+        },
+    )
+
+    assert toggle.get_pypi_homepage("demo") == "https://github.com/acme/demo"
+
+
 def test_clone_repo_local(tmp_path: Path) -> None:
     source_repo = tmp_path / "source"
     create_git_repo(source_repo)
