@@ -1,3 +1,8 @@
+[![Release Notes](https://img.shields.io/github/release/iloveitaly/uv-development-toggle)](https://github.com/iloveitaly/uv-development-toggle/releases)
+[![Downloads](https://static.pepy.tech/badge/uv-development-toggle/month)](https://pepy.tech/project/uv-development-toggle)
+![GitHub CI Status](https://github.com/iloveitaly/uv-development-toggle/actions/workflows/build_and_publish.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # Python Uv Development Package Toggler
 
 A utility script for easily switching between local development and published sources for Python packages in your `pyproject.toml`.
@@ -14,6 +19,10 @@ A utility script for easily switching between local development and published so
 - Automatically runs `uv sync --upgrade-package` after successful updates
 
 ## Installation
+
+```shell
+uv add uv-development-toggle
+```
 
 ```shell
 pip install uv-development-toggle
@@ -57,3 +66,7 @@ This will:
 ### Environment Variables
 
 - `PYTHON_DEVELOPMENT_TOGGLE`: Directory for local development repositories (default: "pypi")
+
+---
+
+*This project was created from [iloveitaly/python-package-template](https://github.com/iloveitaly/python-package-template)*
