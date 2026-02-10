@@ -39,6 +39,13 @@
 
 
 
+## [0.6.2](https://github.com/iloveitaly/uv-development-toggle/compare/v0.6.1...v0.6.2) (2026-02-10)
+
+
+### Bug Fixes
+
+* **toggle:** improve homepage selection for PyPI packages ([b5e96ce](https://github.com/iloveitaly/uv-development-toggle/commit/b5e96cef3508acefdd98752c8ee9f0998c08d793))
+
 ## [0.6.1](https://github.com/iloveitaly/uv-development-toggle/compare/v0.6.0...v0.6.1) (2026-02-10)
 
 
