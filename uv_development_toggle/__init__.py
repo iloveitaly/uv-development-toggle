@@ -1,4 +1,3 @@
-import argparse
 import json
 import logging
 import os
@@ -9,10 +8,8 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-import rich.console
+import click
 import tomlkit
-
-console = rich.console.Console()
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "WARNING").upper(),
@@ -22,7 +19,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def format_status_label(label: str, color: str) -> str:
+    return click.style(label, fg=color, bold=True)
+
+
 def display_status(status_type, module_name, details=None):
+    if details is None:
+        details = {}
     """
     Display a formatted status message using rich console.
 
@@ -33,49 +36,36 @@ def display_status(status_type, module_name, details=None):
         details: Additional details or data to display (e.g., source configuration)
     """
     if status_type == "source_path":
-        console.print(
-            f"[bold green]✓[/bold green] Set [cyan]{module_name}[/cyan] source to local path: [yellow]{details['path']}[/yellow]"
-        )
+        message = f"Set {module_name} source to local path: {details['path']}"
+        click.echo(f"{format_status_label('OK', 'green')} {message}")
     elif status_type == "source_git":
-        rev_info = (
-            f" (branch: [magenta]{details.get('rev')}[/magenta])"
-            if details.get("rev")
-            else ""
-        )
-        console.print(
-            f"[bold green]✓[/bold green] Set [cyan]{module_name}[/cyan] source to Git repo: [blue]{details['git']}[/blue]{rev_info}"
-        )
+        rev_info = f" (branch: {details.get('rev')})" if details.get("rev") else ""
+        message = f"Set {module_name} source to Git repo: {details['git']}{rev_info}"
+        click.echo(f"{format_status_label('OK', 'green')} {message}")
     elif status_type == "source_other":
-        console.print(
-            f"[bold green]✓[/bold green] Set [cyan]{module_name}[/cyan] source to: {details}"
-        )
+        message = f"Set {module_name} source to: {details}"
+        click.echo(f"{format_status_label('OK', 'green')} {message}")
     elif status_type == "pypi":
-        console.print(
-            f"[bold green]✓[/bold green] Removing custom source for [cyan]{module_name}[/cyan] to use [magenta]PyPI version[/magenta]"
-        )
+        message = f"Removing custom source for {module_name} to use PyPI version"
+        click.echo(f"{format_status_label('OK', 'green')} {message}")
     elif status_type == "pypi_already":
-        console.print(
-            f"[bold green]✓[/bold green] Already using [magenta]PyPI version[/magenta] for [cyan]{module_name}[/cyan]"
-        )
+        message = f"Already using PyPI version for {module_name}"
+        click.echo(f"{format_status_label('OK', 'green')} {message}")
     elif status_type == "error":
-        console.print(
-            f"[bold red]✗[/bold red] Error: {details} for [cyan]{module_name}[/cyan]"
-        )
+        message = f"Error: {details} for {module_name}"
+        click.echo(f"{format_status_label('ERROR', 'red')} {message}")
     elif status_type == "warning":
-        console.print(
-            f"[bold yellow]![/bold yellow] Warning: {details} for [cyan]{module_name}[/cyan]"
-        )
+        message = f"Warning: {details} for {module_name}"
+        click.echo(f"{format_status_label('WARN', 'yellow')} {message}")
     elif status_type == "info":
-        console.print(
-            f"[bold blue]i[/bold blue] {details} for [cyan]{module_name}[/cyan]"
-        )
+        message = f"{details} for {module_name}"
+        click.echo(f"{format_status_label('INFO', 'blue')} {message}")
     elif status_type == "found_editable":
-        console.print(
-            f"[bold yellow]![/bold yellow] Found editable package [cyan]{module_name}[/cyan]: [yellow]{details.get('path')}[/yellow]"
-        )
+        message = f"Found editable package {module_name}: {details.get('path')}"
+        click.echo(f"{format_status_label('WARN', 'yellow')} {message}")
 
 
-def get_github_username() -> str:
+def get_github_username() -> str | None:
     logger.debug("Attempting to get GitHub username")
     # Try gh cli first
     try:
@@ -445,45 +435,19 @@ def find_and_update_editable_sources(switch_to_published=False):
     return editable_packages
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "module", nargs="?", help="Module name in pyproject.toml to toggle"
-    )
-    parser.add_argument(
-        "--local",
-        action="store_true",
-        help="Use local editable path, and clone repo if necessary",
-    )
-    parser.add_argument(
-        "--published",
-        action="store_true",
-        help="Use github source",
-    )
-    parser.add_argument(
-        "--pypi",
-        action="store_true",
-        help="Use PyPI published version",
-    )
-    parser.add_argument(
-        "--remove-editable",
-        action="store_true",
-        help="Find all editable packages and switch them to published sources",
-    )
-
-    args = parser.parse_args()
-
-    if args.remove_editable:
-        console.print("[bold]Searching for editable packages...[/bold]")
+def main(module, force_local, force_published, force_pypi, remove_editable):
+    if remove_editable:
+        click.echo("Searching for editable packages...")
         packages = find_and_update_editable_sources(switch_to_published=True)
         if packages:
-            console.print(
-                f"[bold green]✓[/bold green] Converted [cyan]{len(packages)}[/cyan] editable packages to published sources"
+            message = (
+                f"Converted {len(packages)} editable packages to published sources"
             )
+            click.echo(f"{format_status_label('OK', 'green')} {message}")
         return
 
     # If 'all' is passed as the module and --local is NOT set, apply --published or --pypi to all editable packages
-    if args.module == "all" and not args.local:
+    if module == "all" and not force_local:
         pyproject_path = Path("pyproject.toml")
         if not pyproject_path.exists():
             display_status(
@@ -504,7 +468,7 @@ def main():
             display_status("info", "pyproject.toml", "No editable packages found")
             return
         for pkg in editable_packages:
-            if args.pypi:
+            if force_pypi:
                 toggle_module_source(
                     pkg, force_local=False, force_published=False, force_pypi=True
                 )
@@ -512,21 +476,31 @@ def main():
                 toggle_module_source(
                     pkg, force_local=False, force_published=True, force_pypi=False
                 )
-        console.print(
-            f"[bold green]✓[/bold green] Updated [cyan]{len(editable_packages)}[/cyan] editable packages to "
-            + (
-                "[magenta]PyPI[/magenta]"
-                if args.pypi
-                else "[blue]published sources[/blue]"
-            )
-        )
+        destination = "PyPI" if force_pypi else "published sources"
+        message = f"Updated {len(editable_packages)} editable packages to {destination}"
+        click.echo(f"{format_status_label('OK', 'green')} {message}")
         return
 
-    if not args.module:
-        parser.error("module name is required unless using --remove-editable")
+    if not module:
+        raise click.UsageError("module name is required unless using --remove-editable")
 
-    toggle_module_source(args.module, args.local, args.published, args.pypi)
+    toggle_module_source(module, force_local, force_published, force_pypi)
 
 
-if __name__ == "__main__":
-    main()
+@click.command()
+@click.argument("module", required=False)
+@click.option(
+    "--local",
+    "force_local",
+    is_flag=True,
+    help="Use local editable path, and clone repo if necessary",
+)
+@click.option("--published", "force_published", is_flag=True, help="Use github source")
+@click.option("--pypi", "force_pypi", is_flag=True, help="Use PyPI published version")
+@click.option(
+    "--remove-editable",
+    is_flag=True,
+    help="Find all editable packages and switch them to published sources",
+)
+def cli(module, force_local, force_published, force_pypi, remove_editable):
+    main(module, force_local, force_published, force_pypi, remove_editable)
