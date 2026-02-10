@@ -10,14 +10,14 @@ services:
     ports:
       - ${CI:+5432}:5432
     volumes:
-      - app_postgres_data:/var/lib/postgresql/data/
+      - app_postgres_data:/var/lib/postgresql/
     healthcheck:
       # if you customize the default user at all, this healthcheck with clutter your logs
       # since the default username + database does not match up
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 2s
       timeout: 5s
-      retries: 3
+      retries: 5
 
   # port 6379
   redis:

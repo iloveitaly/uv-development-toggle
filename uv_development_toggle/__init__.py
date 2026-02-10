@@ -13,10 +13,8 @@ import rich.console
 import rich.logging
 import tomlkit
 
-# Setup rich console for output
 console = rich.console.Console()
 
-# Setup better logging with rich
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "WARNING").upper(),
     format="%(message)s",
