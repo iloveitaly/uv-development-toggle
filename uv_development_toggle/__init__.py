@@ -98,7 +98,7 @@ def check_github_repo_exists(username: str, repo: str) -> bool:
         urlopen(f"https://github.com/{username}/{repo}")
         logger.debug("Repository found")
         return True
-    except:
+    except (HTTPError, URLError):
         logger.debug("Repository not found")
         return False
 
@@ -110,7 +110,7 @@ def get_pypi_info(package_name: str) -> dict:
             data = json.loads(response.read())
             logger.debug("Successfully fetched PyPI data")
             return data
-    except:
+    except (HTTPError, URLError):
         logger.debug("Failed to fetch PyPI data")
         return {}
 
@@ -239,17 +239,9 @@ def toggle_module_source(
     with open(pyproject_path) as f:
         config = tomlkit.load(f)
 
-    # Ensure the required sections exist
-    if "tool" not in config:
-        config["tool"] = tomlkit.table()
-
-    if "uv" not in config["tool"]:
-        config["tool"]["uv"] = tomlkit.table()
-
-    if "sources" not in config["tool"]["uv"]:
-        config["tool"]["uv"]["sources"] = tomlkit.table()
-
-    sources = config["tool"]["uv"]["sources"]
+    tool_config = config.setdefault("tool", tomlkit.table())
+    uv_config = tool_config.setdefault("uv", tomlkit.table())
+    sources = uv_config.setdefault("sources", tomlkit.table())
     current_source = sources.get(module_name, {})
 
     # Handle PyPI option
@@ -405,16 +397,10 @@ def find_and_update_editable_sources(switch_to_published=False):
     with open(pyproject_path) as f:
         config = tomlkit.load(f)
 
-    # Check if the structure exists
-    if (
-        "tool" not in config
-        or "uv" not in config["tool"]
-        or "sources" not in config["tool"]["uv"]
-    ):
+    sources = config.get("tool", {}).get("uv", {}).get("sources")
+    if not sources:
         display_status("info", "pyproject.toml", "No uv sources configuration found")
         return []
-
-    sources = config["tool"]["uv"]["sources"]
     editable_packages = []
 
     # Find all editable sources
