@@ -6,7 +6,6 @@ from http.client import HTTPMessage
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 
-import click
 import pytest
 import tomlkit
 from click.testing import CliRunner
