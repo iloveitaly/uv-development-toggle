@@ -39,12 +39,17 @@
 
 
 
+## [0.6.1](https://github.com/iloveitaly/uv-development-toggle/compare/v0.6.0...v0.6.1) (2026-02-10)
+
+
+### Documentation
+
+* add local.md for documentation purposes ([8c75b02](https://github.com/iloveitaly/uv-development-toggle/commit/8c75b02ab93ce11c0dd2277f11080f6604da1281))
+* add write-or-update-readme command templates for agents ([ceac89e](https://github.com/iloveitaly/uv-development-toggle/commit/ceac89e6b390d6d130323dd6abf89079db29ebab))
+
 ## [0.2.2](https://github.com/iloveitaly/uv-development-toggle/compare/v0.2.1...v0.2.2) (2025-03-22)
 
 
 ### Bug Fixes
 
 * create toml sources structure if it doesn't exist ([ebcff8f](https://github.com/iloveitaly/uv-development-toggle/commit/ebcff8f53e33e912fede1b15f330729e324325d8))
-
-
-
