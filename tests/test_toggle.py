@@ -365,7 +365,7 @@ def test_toggle_module_source_switches_to_local(
     assert sources["demo"]["editable"] is True
 
 
-def test_toggle_module_source_force_published_uses_branch(
+def test_toggle_module_source_force_git_uses_branch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     pyproject_path = tmp_path / "pyproject.toml"
@@ -387,7 +387,7 @@ def test_toggle_module_source_force_published_uses_branch(
     monkeypatch.setattr(toggle, "check_github_repo_is_python_package", lambda _u: True)
 
     monkeypatch.chdir(tmp_path)
-    toggle.toggle_module_source("demo", force_published=True)
+    toggle.toggle_module_source("demo", force_git=True)
 
     updated = tomllib.loads(pyproject_path.read_text())
     source = updated["tool"]["uv"]["sources"]["demo"]
@@ -430,20 +430,20 @@ def test_find_and_update_editable_sources(
     )
 
     monkeypatch.chdir(tmp_path)
-    assert toggle.find_and_update_editable_sources(switch_to_published=False) == [
+    assert toggle.find_and_update_editable_sources(switch_to_git=False) == [
         "demo"
     ]
 
     called = []
 
     def fake_toggle(
-        package_name: str, force_local: bool, force_published: bool
+        package_name: str, force_local: bool, force_git: bool
     ) -> None:
-        called.append((package_name, force_local, force_published))
+        called.append((package_name, force_local, force_git))
 
     monkeypatch.setattr(toggle, "toggle_module_source", fake_toggle)
 
-    assert toggle.find_and_update_editable_sources(switch_to_published=True) == ["demo"]
+    assert toggle.find_and_update_editable_sources(switch_to_git=True) == ["demo"]
     assert called == [("demo", False, True)]
 
 
@@ -454,7 +454,7 @@ def test_find_and_update_editable_sources_no_sources(
     write_pyproject(pyproject_path, {})
 
     monkeypatch.chdir(tmp_path)
-    assert toggle.find_and_update_editable_sources(switch_to_published=False) == []
+    assert toggle.find_and_update_editable_sources(switch_to_git=False) == []
 
 
 def test_main_all_force_pypi(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -464,9 +464,9 @@ def test_main_all_force_pypi(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     called = []
 
     def fake_toggle(
-        module_name: str, force_local: bool, force_published: bool, force_pypi: bool
+        module_name: str, force_local: bool, force_git: bool, force_pypi: bool
     ) -> None:
-        called.append((module_name, force_local, force_published, force_pypi))
+        called.append((module_name, force_local, force_git, force_pypi))
 
     monkeypatch.setattr(toggle, "toggle_module_source", fake_toggle)
     monkeypatch.chdir(tmp_path)
@@ -474,7 +474,7 @@ def test_main_all_force_pypi(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     toggle.main(
         "all",
         force_local=False,
-        force_published=False,
+        force_git=False,
         force_pypi=True,
         remove_editable=False,
     )

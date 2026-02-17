@@ -69,7 +69,7 @@ def uv_update_package(package_name):
 def toggle_module_source(
     module_name: str,
     force_local: bool = False,
-    force_published: bool = False,
+    force_git: bool = False,
     force_pypi: bool = False,
 ):
     pyproject_path = Path("pyproject.toml")
@@ -167,14 +167,14 @@ def toggle_module_source(
             )
             sys.exit(1)
 
-    published_source = (
+    git_source = (
         {"git": github_url, "rev": current_branch}
         if current_branch
         else {"git": github_url}
     )
     local_source = {"path": str(local_path), "editable": True}
 
-    if force_local or (not force_published and "git" in current_source):
+    if force_local or (not force_git and "git" in current_source):
         new_source = local_source
         if not local_path.exists():
             if not github_url:
@@ -196,7 +196,7 @@ def toggle_module_source(
             )
             clone_repo(github_url, local_path)
     else:
-        new_source = published_source
+        new_source = git_source
 
     sources[module_name] = new_source
 
@@ -215,12 +215,12 @@ def toggle_module_source(
         display_status("source_other", module_name, new_source)
 
 
-def find_and_update_editable_sources(switch_to_published=False):
+def find_and_update_editable_sources(switch_to_git=False):
     """
     Find all packages with editable sources in pyproject.toml and update them.
 
     Args:
-        switch_to_published: If True, switch to published sources, otherwise just report.
+        switch_to_git: If True, switch to git sources, otherwise just report.
 
     Returns:
         List of package names that were updated
@@ -249,10 +249,10 @@ def find_and_update_editable_sources(switch_to_published=False):
             editable_packages.append(package_name)
             display_status("found_editable", package_name, source_config)
 
-            if switch_to_published:
-                # Process each editable package to convert to published source
+            if switch_to_git:
+                # Process each editable package to convert to git source
                 toggle_module_source(
-                    package_name, force_local=False, force_published=True
+                    package_name, force_local=False, force_git=True
                 )
 
     if not editable_packages:
@@ -261,18 +261,18 @@ def find_and_update_editable_sources(switch_to_published=False):
     return editable_packages
 
 
-def main(module, force_local, force_published, force_pypi, remove_editable):
+def main(module, force_local, force_git, force_pypi, remove_editable):
     if remove_editable:
         click.echo("Searching for editable packages...")
-        packages = find_and_update_editable_sources(switch_to_published=True)
+        packages = find_and_update_editable_sources(switch_to_git=True)
         if packages:
             message = (
-                f"Converted {len(packages)} editable packages to published sources"
+                f"Converted {len(packages)} editable packages to git sources"
             )
             click.echo(f"{format_status_label('OK', 'green')} {message}")
         return
 
-    # If 'all' is passed as the module and --local is NOT set, apply --published or --pypi to all editable packages
+    # If 'all' is passed as the module and --local is NOT set, apply --git or --pypi to all editable packages
     if module == "all" and not force_local:
         pyproject_path = Path("pyproject.toml")
         if not pyproject_path.exists():
@@ -295,13 +295,13 @@ def main(module, force_local, force_published, force_pypi, remove_editable):
         for pkg in editable_packages:
             if force_pypi:
                 toggle_module_source(
-                    pkg, force_local=False, force_published=False, force_pypi=True
+                    pkg, force_local=False, force_git=False, force_pypi=True
                 )
             else:
                 toggle_module_source(
-                    pkg, force_local=False, force_published=True, force_pypi=False
+                    pkg, force_local=False, force_git=True, force_pypi=False
                 )
-        destination = "PyPI" if force_pypi else "published sources"
+        destination = "PyPI" if force_pypi else "git sources"
         message = f"Updated {len(editable_packages)} editable packages to {destination}"
         click.echo(f"{format_status_label('OK', 'green')} {message}")
         return
@@ -309,7 +309,7 @@ def main(module, force_local, force_published, force_pypi, remove_editable):
     if not module:
         raise click.UsageError("module name is required unless using --remove-editable")
 
-    toggle_module_source(module, force_local, force_published, force_pypi)
+    toggle_module_source(module, force_local, force_git, force_pypi)
 
 
 @click.command()
@@ -320,12 +320,12 @@ def main(module, force_local, force_published, force_pypi, remove_editable):
     is_flag=True,
     help="Use local editable path, and clone repo if necessary",
 )
-@click.option("--published", "force_published", is_flag=True, help="Use github source")
+@click.option("--git", "force_git", is_flag=True, help="Use github source")
 @click.option("--pypi", "force_pypi", is_flag=True, help="Use PyPI published version")
 @click.option(
     "--remove-editable",
     is_flag=True,
-    help="Find all editable packages and switch them to published sources",
+    help="Find all editable packages and switch them to git sources",
 )
-def cli(module, force_local, force_published, force_pypi, remove_editable):
-    main(module, force_local, force_published, force_pypi, remove_editable)
+def cli(module, force_local, force_git, force_pypi, remove_editable):
+    main(module, force_local, force_git, force_pypi, remove_editable)

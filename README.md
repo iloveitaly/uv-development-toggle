@@ -37,7 +37,7 @@ uv-development-toggle activemodel --local
 Then, after you push to a custom branch, reference the branch in your `pyproject.toml`:
 
 ```shell
-uv-development-toggle activemodel --published
+uv-development-toggle activemodel --git
 ```
 
 To revert a package to PyPI:
@@ -58,7 +58,7 @@ This will:
 
 - `MODULE_NAME`: The name of the Python module to toggle
 - `--local`: Force using local development path
-- `--published`: Force using published source
+- `--git`: Force using git source
 - `--pypi`: Revert to default PyPI source
 
 ### Environment Variables
