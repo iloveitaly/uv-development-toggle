@@ -251,9 +251,7 @@ def find_and_update_editable_sources(switch_to_git=False):
 
             if switch_to_git:
                 # Process each editable package to convert to git source
-                toggle_module_source(
-                    package_name, force_local=False, force_git=True
-                )
+                toggle_module_source(package_name, force_local=False, force_git=True)
 
     if not editable_packages:
         display_status("info", "pyproject.toml", "No editable packages found")
@@ -266,9 +264,7 @@ def main(module, force_local, force_git, force_pypi, remove_editable):
         click.echo("Searching for editable packages...")
         packages = find_and_update_editable_sources(switch_to_git=True)
         if packages:
-            message = (
-                f"Converted {len(packages)} editable packages to git sources"
-            )
+            message = f"Converted {len(packages)} editable packages to git sources"
             click.echo(f"{format_status_label('OK', 'green')} {message}")
         return
 

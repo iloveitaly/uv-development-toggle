@@ -430,15 +430,11 @@ def test_find_and_update_editable_sources(
     )
 
     monkeypatch.chdir(tmp_path)
-    assert toggle.find_and_update_editable_sources(switch_to_git=False) == [
-        "demo"
-    ]
+    assert toggle.find_and_update_editable_sources(switch_to_git=False) == ["demo"]
 
     called = []
 
-    def fake_toggle(
-        package_name: str, force_local: bool, force_git: bool
-    ) -> None:
+    def fake_toggle(package_name: str, force_local: bool, force_git: bool) -> None:
         called.append((package_name, force_local, force_git))
 
     monkeypatch.setattr(toggle, "toggle_module_source", fake_toggle)
