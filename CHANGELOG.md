@@ -39,6 +39,18 @@
 
 
 
+## [0.6.3](https://github.com/iloveitaly/uv-development-toggle/compare/v0.6.2...v0.6.3) (2026-02-17)
+
+
+### Bug Fixes
+
+* update from --published to --git option in all docs and code ([b173887](https://github.com/iloveitaly/uv-development-toggle/commit/b1738878ff88eca76f8f18f3b7b4789173ce7f51))
+
+
+### Documentation
+
+* add video demo link for usage in README.md ([ef2fde8](https://github.com/iloveitaly/uv-development-toggle/commit/ef2fde8e4112e7fe390e0e543e88dc11f85f4474))
+
 ## [0.6.2](https://github.com/iloveitaly/uv-development-toggle/compare/v0.6.1...v0.6.2) (2026-02-10)
 
 
