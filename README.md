@@ -7,6 +7,10 @@
 
 A utility script for easily switching between local development and published sources for Python packages in your `pyproject.toml`.
 
+Here's a quick video demonstration of how to use the tool:
+
+[![How to Toggle Between PyPi and Git Package Versions](https://img.youtube.com/vi/P5PWD-4WSR8/0.jpg)](https://www.youtube.com/watch?v=P5PWD-4WSR8)
+
 ## Features
 
 - Automatically toggles between local development paths and GitHub sources
