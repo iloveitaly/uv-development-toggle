@@ -39,6 +39,13 @@
 
 
 
+## [0.6.4](https://github.com/iloveitaly/uv-development-toggle/compare/v0.6.3...v0.6.4) (2026-04-06)
+
+
+### Documentation
+
+* Update README with original issue link ([47f6034](https://github.com/iloveitaly/uv-development-toggle/commit/47f60343b6cdcfb3079419d020e8710c79f7aeee))
+
 ## [0.6.3](https://github.com/iloveitaly/uv-development-toggle/compare/v0.6.2...v0.6.3) (2026-02-17)
 
 
