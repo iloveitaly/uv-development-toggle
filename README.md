@@ -5,7 +5,7 @@
 
 # Python Uv Development Package Toggler
 
-A utility script for easily switching between local development and published sources for Python packages in your `pyproject.toml`.
+A utility script for easily switching between local development and published sources for Python packages in your `pyproject.toml`. [Here's the original issue which spawned this project.](https://github.com/astral-sh/uv/issues/9258)
 
 Here's a quick video demonstration of how to use the tool:
 
