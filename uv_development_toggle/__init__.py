@@ -22,7 +22,6 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-
 def clone_repo(github_url: str, target_path: Path):
     logger.info(f"Cloning {github_url} into {target_path}")
     subprocess.run(["git", "clone", github_url, str(target_path)], check=True)
