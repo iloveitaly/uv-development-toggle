@@ -1,3 +1,5 @@
+import importlib.metadata
+import json
 import logging
 import os
 import subprocess
@@ -21,6 +23,22 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+
+def get_version() -> str:
+    version = importlib.metadata.version("uv-development-toggle")
+
+    try:
+        dist = importlib.metadata.distribution("uv-development-toggle")
+        direct_url = dist.read_text("direct_url.json")
+        if direct_url:
+            info = json.loads(direct_url)
+            if info.get("dir_info", {}).get("editable"):
+                return f"{version}.dev"
+    except Exception:
+        pass
+
+    return version
 
 
 def clone_repo(github_url: str, target_path: Path):
@@ -330,5 +348,9 @@ def main(module, force_local, force_git, force_pypi, remove_editable):
     is_flag=True,
     help="Find all editable packages and switch them to git sources",
 )
-def cli(module, force_local, force_git, force_pypi, remove_editable):
+@click.option("--version", is_flag=True, help="Show version and exit")
+def cli(module, force_local, force_git, force_pypi, remove_editable, version):
+    if version:
+        click.echo(get_version())
+        return
     main(module, force_local, force_git, force_pypi, remove_editable)
