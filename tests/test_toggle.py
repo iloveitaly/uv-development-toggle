@@ -395,6 +395,40 @@ def test_toggle_module_source_force_git_uses_branch(
     assert source["rev"] == "feature"
 
 
+def test_toggle_module_source_force_git_uses_branch_from_custom_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    custom_repo = tmp_path / "custom" / "demo"
+    create_git_repo_with_branch(custom_repo, "feature")
+
+    pyproject_path = tmp_path / "pyproject.toml"
+    write_pyproject(
+        pyproject_path, {"demo": {"path": str(custom_repo), "editable": True}}
+    )
+
+    dev_toggle = tmp_path / "dev"
+    dev_toggle.mkdir()
+
+    bin_path = tmp_path / "bin"
+    bin_path.mkdir()
+    uv_path = bin_path / "uv"
+    create_executable(uv_path, "#!/usr/bin/env sh\nexit 0\n")
+
+    monkeypatch.setenv("PATH", f"{bin_path}:{os.environ.get('PATH', '')}")
+    monkeypatch.setenv("PYTHON_DEVELOPMENT_TOGGLE", str(dev_toggle))
+    monkeypatch.setattr(toggle, "get_github_username", lambda: "alice")
+    monkeypatch.setattr(toggle, "check_github_repo_exists", lambda _u, _r: True)
+    monkeypatch.setattr(toggle, "check_github_repo_is_python_package", lambda _u: True)
+
+    monkeypatch.chdir(tmp_path)
+    toggle.toggle_module_source("demo", force_git=True)
+
+    updated = tomllib.loads(pyproject_path.read_text())
+    source = updated["tool"]["uv"]["sources"]["demo"]
+    assert source["git"] == "https://github.com/alice/demo.git"
+    assert source["rev"] == "feature"
+
+
 def test_toggle_module_source_missing_local_and_no_github(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
