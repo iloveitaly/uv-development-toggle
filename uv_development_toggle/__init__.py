@@ -142,7 +142,9 @@ def toggle_module_source(
     else:
         local_path = local_path_default
 
-    branch_detection_path = current_source_path or (local_path if local_path.exists() else None)
+    branch_detection_path = current_source_path or (
+        local_path if local_path.exists() else None
+    )
 
     current_branch = None
     if branch_detection_path is not None:
