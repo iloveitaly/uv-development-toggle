@@ -39,6 +39,14 @@
 
 
 
+## [0.7.0](https://github.com/iloveitaly/uv-development-toggle/compare/v0.6.4...v0.7.0) (2026-04-17)
+
+
+### Features
+
+* add version flag to cli ([282c2f2](https://github.com/iloveitaly/uv-development-toggle/commit/282c2f22fcb721d533e1acfd69c653535174b096))
+* detect git branch from existing custom paths when toggling source ([b906d13](https://github.com/iloveitaly/uv-development-toggle/commit/b906d13b9503b0089038abf85755e846909d615d))
+
 ## [0.6.4](https://github.com/iloveitaly/uv-development-toggle/compare/v0.6.3...v0.6.4) (2026-04-06)
 
 
