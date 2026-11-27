@@ -35,8 +35,14 @@ def get_version() -> str:
             info = json.loads(direct_url)
             if info.get("dir_info", {}).get("editable"):
                 return f"{version}.dev"
-    except Exception:
-        pass
+    except (
+        OSError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        importlib.metadata.PackageNotFoundError,
+    ):
+        return version
 
     return version
 
@@ -49,6 +55,7 @@ def clone_repo(github_url: str, target_path: Path):
 def get_current_branch(repo_path: Path) -> str:
     result = subprocess.run(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        check=False,
         capture_output=True,
         text=True,
         cwd=str(repo_path),

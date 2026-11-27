@@ -4,6 +4,7 @@ import subprocess
 import tomllib
 from http.client import HTTPMessage
 from pathlib import Path
+from typing import Self
 from urllib.error import HTTPError, URLError
 
 import pytest
@@ -139,7 +140,7 @@ def test_check_github_repo_exists(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_get_pypi_info_success_and_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeResponse:
-        def __enter__(self) -> "FakeResponse":
+        def __enter__(self) -> Self:
             return self
 
         def __exit__(self, _exc_type, _exc, _tb) -> None:

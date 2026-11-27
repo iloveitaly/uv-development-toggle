@@ -9,7 +9,12 @@ from urllib.request import Request, urlopen
 
 def get_github_username() -> str | None:
     try:
-        result = subprocess.run(["gh", "api", "user"], capture_output=True, text=True)
+        result = subprocess.run(
+            ["gh", "api", "user"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
         if result.returncode == 0:
             return json.loads(result.stdout)["login"]
     except FileNotFoundError:
@@ -17,7 +22,10 @@ def get_github_username() -> str | None:
 
     try:
         result = subprocess.run(
-            ["git", "config", "user.name"], capture_output=True, text=True
+            ["git", "config", "user.name"],
+            check=False,
+            capture_output=True,
+            text=True,
         )
         if result.returncode == 0:
             return result.stdout.strip()

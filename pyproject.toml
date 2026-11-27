@@ -5,6 +5,14 @@ description = "Easily toggle between development and production packages with uv
 keywords = ["uv", "development", "package"]
 readme = "README.md"
 requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
 dependencies = [
     "click>=8.1.8",
     "tomlkit>=0.13.2",
@@ -17,7 +25,7 @@ urls = { "Repository" = "https://github.com/iloveitaly/uv-development-toggle" }
 uv-development-toggle = "uv_development_toggle:cli"
 
 [build-system]
-requires = ["uv_build>=0.11.0,<0.12"]
+requires = ["uv_build>=0.11.0,<0.14"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
@@ -32,6 +40,7 @@ dev = [
     "coverage>=7.13.4",
     "pytest-cov>=7.0.0",
     "covdefaults>=2.3.0",
+    "beautiful-traceback>=1.0.2; python_version >= '3.12'",
 ]
 
 [tool.pyright]
@@ -46,6 +55,3 @@ source = ["uv_development_toggle"]
 
 [tool.coverage.report]
 fail_under = 50
-
-[tool.ruff]
-extend-exclude = ["playground.py", "playground/"]
