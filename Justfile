@@ -1,8 +1,62 @@
+
+# Line recipes and [script] recipes both use zsh with strict mode.
+set shell := ["zsh", "-euo", "pipefail", "-c"]
+set script-interpreter := ["zsh", "-euo", "pipefail"]
+
+# Ensure gh commands never trigger an interactive pager
+export GH_PAGER := "cat"
+
 # Set up the Python environment, done automatically for you when using direnv
 setup:
     [ -f .env ] || cp .env-example .env
-    uv venv && uv sync
+    uv venv --allow-existing && uv sync
+    # beautiful-traceback requires Python >=3.12; this package still supports 3.11
+    if uv run python -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)'; then uv run beautiful-traceback; fi
+    # Keep IDE-specific rule files in sync with instructions.md
+    if [ -f instructions.md ]; then uvx llm-ide-rules explode; fi
     @echo "activate: source ./.venv/bin/activate"
+
+
+
+# Install this checkout globally in editable mode, including existing mise environments.
+# Re-run after mise upgrades, which replace the editable installation.
+[script]
+install_editable:
+    command -v jq >/dev/null
+    metadata=$(uv run --no-project --python '>=3.12' python -c 'import json, tomllib; from pathlib import Path; p = tomllib.loads(Path("pyproject.toml").read_text())["project"]; print(json.dumps({"name": p["name"], "scripts": list(p.get("scripts", {}))}))')
+    package=$(echo "$metadata" | jq -r '.name')
+    # Python distribution names are normalized for uv/pipx environment directories.
+    env_name=$(echo "$package" | tr '[:upper:]' '[:lower:]' | sed -E 's/[-_.]+/-/g')
+
+    uv tool install --force --editable .
+
+    if ! command -v mise >/dev/null; then
+        echo "mise not on PATH; uv tool only"
+    else
+        installs=$(mise ls --json --installed "pipx:$package")
+        echo "$installs" | jq -r '.[].install_path' | while IFS= read -r install_path; do
+            [ -n "$install_path" ] || continue
+            py=""
+            for candidate in "$install_path/$env_name/bin/python" "$install_path/.mise-uv/.venv/bin/python"; do
+                if [ -x "$candidate" ]; then
+                    py="$candidate"
+                    break
+                fi
+            done
+            if [ -z "$py" ]; then
+                echo "skip $install_path (no venv python)"
+                continue
+            fi
+            echo "editable into mise env: $install_path"
+            uv pip install --python "$py" --reinstall-package "$package" --editable .
+        done
+    fi
+
+    echo "$metadata" | jq -r '.scripts[]' | while IFS= read -r cli; do
+        command -v "$cli"
+    done
+
+
 
 # Start docker services
 docker_up:
@@ -11,7 +65,22 @@ docker_up:
 docker_down:
 	docker compose down
 
-# Run tests
+# Switch stale mise backends, upgrade tool versions and python dependencies, and optionally bump pyproject.toml constraints
+[script]
+[arg("bump_constraints", long="bump-constraints", value="true", help="Bump pyproject.toml minimum constraints using uv-bump")]
+upgrade bump_constraints="false":
+    mise self-update --yes
+    # Upgrade keeps the backend recorded in mise.lock. Switch first so the bump installs from the registry's current backend.
+    mise backends switch --yes
+    mise upgrade --yes --local
+    uv sync --all-groups --all-extras -U
+
+    if [ "{{bump_constraints}}" = "true" ]; then
+        echo "Bumping pyproject.toml minimum constraints with uv-bump..."
+        uvx uv-bump -v
+    fi
+
+
 test:
     uv run pytest -v
 
@@ -28,7 +97,7 @@ lint FILES=".":
 
         uv run pyright {{FILES}} --outputjson > pyright_report.json || exit_code=$?
         jq -r \
-            --arg root "$GITHUB_WORKSPACE/" \
+            --arg root "${GITHUB_WORKSPACE:-}/" \
             '
                 .generalDiagnostics[] |
                 .file as $file |
@@ -43,10 +112,23 @@ lint FILES=".":
         uv run pyright {{FILES}} || exit_code=$?
     fi
 
+    # Scan git history for secrets. `just gitleaks_baseline` writes .gitleaksignore.
+    gitleaks git --no-banner --redact=20 || exit_code=$?
+
     if [ $exit_code -ne 0 ]; then
         echo "One or more linting checks failed"
         exit 1
     fi
+
+# Write current gitleaks findings to .gitleaksignore
+[script]
+gitleaks_baseline:
+    tmp=$(mktemp)
+    # gitleaks exits 1 when it finds secrets; that's expected while baselining
+    gitleaks git --no-banner --redact=20 --report-format json --report-path="$tmp" || true
+    jq -r '(. // [])[] | .Fingerprint' "$tmp" | sort > .gitleaksignore
+    rm -f "$tmp"
+    echo "Wrote $(wc -l < .gitleaksignore | tr -d ' ') fingerprints to .gitleaksignore"
 
 # Automatically fix linting errors
 lint-fix:
@@ -96,6 +178,14 @@ github_ruleset_protect_master_delete:
     ruleset_id=$(gh api repos/$repo/rulesets --jq ".[] | select(.name == \"$ruleset_name\") | .id") && \
     (([ -n "${ruleset_id}" ] || (echo "No ruleset found" && exit 0)) || gh api --method DELETE repos/$repo/rulesets/$ruleset_id)
 
+# allow squash merges only: disable merge commits and rebase merges
+github_enforce_squash_merge:
+  gh api --method PATCH repos/$(just _github_repo) \
+    -F allow_squash_merge=true \
+    -F allow_merge_commit=false \
+    -F allow_rebase_merge=false \
+    -F delete_branch_on_merge=true
+
 # adds github ruleset to prevent --force and other destructive actions on the github main branch
 github_ruleset_protect_master_create: github_ruleset_protect_master_delete
   gh api --method POST repos/$(just _github_repo)/rulesets --input - <<< '{{GITHUB_PROTECT_MASTER_RULESET}}'
@@ -125,8 +215,7 @@ github_last_build_failure:
     if [[ "$CONCLUSION" == "success" ]]; then
         echo "latest build succeeded"
     else
-        # Force cat pager to output logs directly to terminal
-        GH_PAGER=cat gh run view "$ID" --log-failed
+        gh run view "$ID" --log-failed
     fi
 
 # Rerun only failed jobs for the last failed 'build' workflow for the current branch
@@ -160,3 +249,4 @@ github_repo_set_metadata:
     --description "$(yq  '.project.description' pyproject.toml)" \
     --homepage "$(yq '.project.urls.Repository' pyproject.toml)" \
     --add-topic "$(yq '.project.keywords | join(",")' pyproject.toml)"
+
